@@ -3,8 +3,12 @@ Who Wrote It? Identifying LLMs from Their
 Responses
 (CMPSC 448; modified 9/17/2026)
 Deadline: 11:59pm on Oct. 11, 2026
-Project Overview: As Large Language Models (LLMs) such as GPT, Claude,
+
+Project Overview: 
+As Large Language Models (LLMs) such as GPT, Claude,
+
 Gemini, Llama, and Qwen increasingly generate the text we read online, we
+
 face an emerging digital authorship crisis: Can we still tell who—or
 what—wrote a piece of text? Different LLMs may leave distinct linguistic,
 stylistic, and structural “fingerprints” in their responses, raising an intriguing
@@ -75,19 +79,25 @@ What You Need to Submit
 ● Submit the URL of your GitHub repository. Your repository should
 include:
 ○ Code
+
 ○ Project Report in pdf (names of team leader and members
 included)
 Evaluation:
 ● PDF quality (80%): we score by the following five aspects:
 ○ Problem definition and Dataset curation (20 points)
+
 ○ Your CNN/RNN implementation and how you train it (i.e., your
 model details and training details) (20 points)
+
 ○ The results and how they are presented (20 points)
+
 ○ Any in-depth analyses/experiments (20 points)
+
 ○ Lessons&Experience you learned in this project (20 points)
 For individual participants, points will be deducted in units of 5; for
 group participants, points will be deducted in units of 4+2*G where “G” refers
 to group size (2,3,4 or 5).
+
 ● (optional) Presentation (20%): Each participant (individual or group)
 can choose whether you want to present or not. You can get a default
 score 17 (out of max 20) for the presentation part if you choose NOT
@@ -96,5 +106,6 @@ choose to present, the evaluation criteria include: slide quality, work
 quality, presentation skills, question answering, etc.) For individual
 presentations, points will be deducted in units of 2; for group
 presentations, points will be deducted in units of 4.
+
 ● If it is a group project, each team member gets the same score
 except the team leader has an extra credit score “3”
