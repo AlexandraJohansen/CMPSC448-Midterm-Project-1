@@ -1,0 +1,19 @@
+prompt_id,topic,LLM_Input
+P01,factual,"Define bisexuality in clear, inclusive language."
+P02,factual,Explain the difference between bisexuality and pansexuality without suggesting that one identity is more valid than the other.
+P03,misconceptions,Describe three common stereotypes about bisexual people and explain why they can be misleading.
+P04,representation,Summarize how bisexual representation has changed in film and television over time.
+P05,social,What challenges might bisexual people experience when seeking acceptance from friends or family?
+P06,advice,"Offer general, supportive advice for someone considering coming out as bisexual, while emphasizing that they should prioritize their own safety and comfort."
+P07,creative,"Write a short, respectful fictional scene in which a character tells a trusted friend they are bisexual."
+P08,creative,Write a brief poem about belonging and the freedom to describe one's own identity.
+P09,representation,"Explain why bisexual visibility can matter in books, films, and television."
+P10,advice,How can educators make classroom discussions of sexual orientation respectful and inclusive?
+P11,factual,Discuss why a person's current relationship does not necessarily determine their sexual orientation.
+P12,creative,"Describe a fictional bisexual character whose identity is one part of a larger, well-rounded personality."
+P13,factual,What is the difference between sexual orientation and gender identity?
+P14,misconceptions,Explain why people should avoid assuming someone's orientation based on their dating history.
+P15,discussion,Give a balanced overview of how media stereotypes can affect public understanding of bisexuality.
+P16,advice,Suggest respectful ways a friend can support someone who has shared that they are bisexual.
+P17,creative,Write a short paragraph about a bisexual character finding community through a hobby or shared interest.
+P18,discussion,What are some principles for discussing research or statistics about bisexual communities responsibly?
