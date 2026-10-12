@@ -1,5 +1,5 @@
 """
-LLM authorship classification demo: CNN vs BiLSTM in PyTorch.
+LLM authorship classification demo: CNN vs BiLSTM in PyTorch (Automated RQ2 Multi-Input).
 
 Install:
     pip install torch pandas scikit-learn matplotlib
@@ -31,7 +31,6 @@ def seed_everything(seed=42):
         torch.cuda.manual_seed_all(seed)
 
 def tokenize(text):
-    # Simple baseline tokenizer; for a stronger study, compare with a standard tokenizer.
     return re.findall(r"[a-z]+(?:'[a-z]+)?|[0-9]+|[^\\w\\s]", str(text).lower())
 
 def build_vocab(texts, min_freq=1, max_vocab=20000):
@@ -67,7 +66,6 @@ class TextCNN(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(channels * len(kernels), n_classes)
     def forward(self, x):
-        # [batch, seq] -> [batch, emb, seq]
         emb = self.embedding(x).transpose(1, 2)
         pooled = [torch.relu(conv(emb)).amax(dim=2) for conv in self.convs]
         return self.fc(self.dropout(torch.cat(pooled, dim=1)))
@@ -82,7 +80,6 @@ class TextBiLSTM(nn.Module):
     def forward(self, x):
         emb = self.embedding(x)
         outputs, _ = self.lstm(emb)
-        # Mask padding; mean pooling over non-padding positions.
         mask = (x != 0).unsqueeze(-1).to(outputs.dtype)
         pooled = (outputs * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1)
         return self.fc(self.dropout(pooled))
@@ -115,17 +112,11 @@ def evaluate(model, loader, device, labels):
     p, r, f1, _ = precision_recall_fscore_support(
         ys, preds, labels=list(range(len(labels))), average="macro", zero_division=0
     )
-    print(classification_report(ys, preds, labels=list(range(len(labels))),
-                                target_names=labels, zero_division=0))
-    print("Confusion matrix (rows=true, columns=predicted):")
-    print(confusion_matrix(ys, preds, labels=list(range(len(labels))))
-    )
     return {"accuracy": acc, "macro_precision": p, "macro_recall": r, "macro_f1": f1}
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="dataset_demo.csv")
-    ap.add_argument("--text-col", choices=["LLM_output", "LLM_Input", "input_plus_output"], default="LLM_output")
     ap.add_argument("--epochs", type=int, default=12)
     ap.add_argument("--batch-size", type=int, default=16)
     ap.add_argument("--max-len", type=int, default=220)
@@ -134,11 +125,9 @@ def main():
     seed_everything(args.seed)
 
     df = pd.read_csv(args.data).dropna(subset=["LLM_name", "LLM_Input", "LLM_output", "prompt_id"]).copy()
-    if args.text_col == "input_plus_output":
-        df["input_plus_output"] = df["LLM_Input"].astype(str) + " [SEP] " + df["LLM_output"].astype(str)
-        text_col = "input_plus_output"
-    else:
-        text_col = args.text_col
+    
+    # Pre-construct the combined text representation column
+    df["input_plus_output"] = df["LLM_Input"].astype(str) + " [SEP] " + df["LLM_output"].astype(str)
 
     labels = sorted(df["LLM_name"].unique().tolist())
     if len(labels) < 3:
@@ -149,42 +138,75 @@ def main():
     splitter = GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=args.seed)
     train_idx, test_idx = next(splitter.split(df, groups=df["prompt_id"]))
     train_df, test_df = df.iloc[train_idx].copy(), df.iloc[test_idx].copy()
-    # Build vocabulary from training text only to avoid test-set vocabulary leakage.
-    vocab = build_vocab(train_df[text_col].astype(str).tolist())
-    train_ds = TextDataset(train_df, vocab, label_to_id, text_col, args.max_len)
-    test_ds = TextDataset(test_df, vocab, label_to_id, text_col, args.max_len)
-    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
-    test_loader = DataLoader(test_ds, batch_size=args.batch_size)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
     print(f"Labels: {label_to_id}")
-    print(f"Rows: train={len(train_df)}, test={len(test_df)}; unique prompts: "
-          f"train={train_df.prompt_id.nunique()}, test={test_df.prompt_id.nunique()}")
-    print(f"Text column: {text_col}; vocabulary size: {len(vocab)}")
-    results = {}
-    for model_name, model in [
-        ("CNN", TextCNN(len(vocab), len(labels))),
-        ("BiLSTM", TextBiLSTM(len(vocab), len(labels))),
-    ]:
-        model.to(device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-        criterion = nn.CrossEntropyLoss()
-        print(f"\\n=== Training {model_name} ===")
-        for epoch in range(1, args.epochs + 1):
-            loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, device)
-            print(f"Epoch {epoch:02d}/{args.epochs} | loss={loss:.4f} | train_acc={train_acc:.3f}")
-        print(f"\\n=== Test metrics: {model_name} ===")
-        results[model_name] = evaluate(model, test_loader, device, labels)
-        torch.save({"model_state_dict": model.state_dict(), "vocab": vocab,
-                    "labels": labels, "model_name": model_name, "max_len": args.max_len},
-                   f"{model_name.lower()}_checkpoint.pt")
 
-    results_df = pd.DataFrame(results).T
-    results_df.to_csv("metrics_summary.csv", index_label="model")
-    print("\\nSummary:")
-    print(results_df.to_string(float_format=lambda x: f"{x:.3f}"))
-    print("\\nSaved cnn_checkpoint.pt, bilstm_checkpoint.pt, and metrics_summary.csv")
+    # Automate RQ2 Multi-Input Comparison: Input Only, Output Only, Combined
+    input_modes = {
+        "Input_Only": "LLM_Input",
+        "Output_Only": "LLM_output",
+        "Combined": "input_plus_output"
+    }
+
+    all_results = []
+
+    for mode_name, text_col in input_modes.items():
+        print(f"\n==============================================")
+        print(f"Running RQ2 Evaluation Scenario: {mode_name} (Using column: {text_col})")
+        print(f"==============================================")
+
+        # Build vocabulary specific to this input configuration using training text only
+        vocab = build_vocab(train_df[text_col].astype(str).tolist())
+        train_ds = TextDataset(train_df, vocab, label_to_id, text_col, args.max_len)
+        test_ds = TextDataset(test_df, vocab, label_to_id, text_col, args.max_len)
+        
+        train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
+        test_loader = DataLoader(test_ds, batch_size=args.batch_size)
+
+        for model_name, model_class in [
+            ("CNN", TextCNN),
+            ("BiLSTM", TextBiLSTM),
+        ]:
+            model = model_class(len(vocab), len(labels)).to(device)
+            optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+            criterion = nn.CrossEntropyLoss()
+
+            print(f"\n--- Training {model_name} on {mode_name} ---")
+            for epoch in range(1, args.epochs + 1):
+                loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, device)
+                if epoch % 4 == 0 or epoch == args.epochs:
+                    print(f"Epoch {epoch:02d}/{args.epochs} | loss={loss:.4f} | train_acc={train_acc:.3f}")
+
+            metrics = evaluate(model, test_loader, device, labels)
+            print(f"Test Result [{model_name} | {mode_name}] -> Accuracy: {metrics['accuracy']:.3f}")
+
+            # Record results with identifiers
+            record = {"Model": model_name, "Input_Mode": mode_name}
+            record.update(metrics)
+            all_results.append(record)
+
+            # Save checkpoint
+            ckpt_filename = f"{model_name.lower()}_{mode_name.lower()}_checkpoint.pt"
+            torch.save({
+                "model_state_dict": model.state_dict(), 
+                "vocab": vocab,
+                "labels": labels, 
+                "model_name": model_name, 
+                "input_mode": mode_name,
+                "max_len": args.max_len
+            }, ckpt_filename)
+
+    # Compile and save final summary table for RQ2
+    results_df = pd.DataFrame(all_results)
+    results_df.to_csv("rq2_mult_input_metrics_summary.csv", index=False)
+    
+    print("\n==============================================")
+    print("RQ2 Multi-Input Comparison Summary:")
+    print("==============================================")
+    print(results_df.to_string(index=False, float_format=lambda x: f"{x:.3f}"))
+    print("\nSaved all checkpoints and 'rq2_mult_input_metrics_summary.csv'")
 
 if __name__ == "__main__":
     main()
