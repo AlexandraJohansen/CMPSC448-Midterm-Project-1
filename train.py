@@ -6,11 +6,6 @@ Install:
 
 Run:
     python train.py --data dataset_demo.csv --epochs 12
-
-IMPORTANT:
-- dataset_demo.csv contains synthetic demonstrations, NOT actual GPT/Claude/Gemini outputs.
-- Replace it with real, consented/permitted model outputs before drawing research conclusions.
-- Keep identical prompts across models and group-split by prompt_id to reduce prompt leakage.
 """
 import argparse
 import random
